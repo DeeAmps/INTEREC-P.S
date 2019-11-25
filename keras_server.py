@@ -30,6 +30,7 @@ from flask import request, url_for, Response
 from flask import flash, redirect, render_template, request, session, abort
 import requests
 import io
+import uuid
 
 # initialize the Flask application and other variables
 app = flask.Flask(__name__)
@@ -59,8 +60,9 @@ def triplet_loss(y_true, y_pred, alpha = 0.2):
 # returns true if a face is found and also saves a cropped bounded face picture 
 # otherwise returns false
 def face_present(image_path):
+    id = uuid.uuid1()
     img = cv2.imread(image_path, -1)
-    save_loc = 'saved_image/new.jpg'
+    save_loc = "saved_image/{}.jpg".format(id)
     face_present = False
     
     # Our operations on the frame come here
@@ -138,15 +140,16 @@ def face_recognition(encoding, database, model, threshold=0.6):
 
 # for adding user face
 def add_face():
+    id = uuid.uuid1()
     data = {"face_present": False}
     encoding = None
     # CHECK FOR FACE IN THE IMAGE
     valid_face = False
-    valid_face = face_present('saved_image/new.jpg')
+    valid_face = face_present("saved_image/{}.jpg".format(id))
     # add user only if there is a face inside the picture
     if valid_face:
         # create image encoding 
-        encoding = img_to_encoding('saved_image/new.jpg', model)
+        encoding = img_to_encoding("saved_image/{}.jpg".format(id), model)
         # save the output for sending as json
         data['face_present'] = True
     else:
@@ -214,6 +217,7 @@ def sign_up():
 # to add user through the sign up from
 @app.route('/signup_user', methods=["POST"])
 def signup_user():
+    id = uuid.uuid1()
     #declaring the engine
     engine = create_engine('sqlite:///login_db.db', echo=True)
     
@@ -237,7 +241,7 @@ def signup_user():
                 image = np.array(Image.open(io.BytesIO(image)))
                 print('Image saved success')
                 # save the image on server side
-                cv2.imwrite('saved_image/new.jpg',
+                cv2.imwrite("saved_image/{}.jpg".format(id),
                             cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
                 # check if any face is present or not in the picture
                 data, encoding = add_face()
@@ -282,6 +286,7 @@ def signup_user():
 # predict function 
 @app.route("/predict", methods=["POST"])
 def predict():
+    id = uuid.uuid1()
     # this will contain the 
     data = {"success": False}
     # for keeping track of authentication status
@@ -295,16 +300,16 @@ def predict():
             image = np.array(Image.open(io.BytesIO(image)))
             
             # save the image on server side
-            cv2.imwrite('saved_image/new.jpg', cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+            cv2.imwrite("saved_image/{}.jpg".format(id), cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
             
             # CHECK FOR FACE IN THE IMAGE
             valid_face = False
-            valid_face = face_present('saved_image/new.jpg')
+            valid_face = face_present("saved_image/{}.jpg".format(id))
 
             # do facial recognition only when there is a face inside the frame
             if valid_face:
                 # find image encoding and see if the image is of a registered user or not
-                encoding = img_to_encoding('saved_image/new.jpg', model)
+                encoding = img_to_encoding("saved_image/{}.jpg".format(id), model)
                 min_dist, identity, authenticate = face_recognition(
                                                     encoding, user_db, model, threshold=0.9)
                 
